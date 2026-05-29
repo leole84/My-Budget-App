@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>업그레이드 예산 플래너</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#1976d2">
+    <style>
+        body { 
+            font-family: 'Pretendard', -apple-system, sans-serif; 
+            background: #f0f2f5; 
+            margin: 0;
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .page-section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.5s ease;
+            z-index: 10;
+        }
+
+        .hidden { display: none !important; opacity: 0; visibility: hidden; pointer-events: none; }
+
+        #intro-screen {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        .intro-illustration { font-size: 80px; margin-bottom: 20px; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .click-prompt { font-size: 0.9rem; letter-spacing: 2px; animation: blink 1.5s infinite; margin-top: 20px; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        #menu-screen { background: #f0f2f5; z-index: 900; }
+        .menu-container { width: 90%; max-width: 400px; text-align: center; }
+        .menu-btn {
+            background: white;
+            padding: 16px;
+            margin: 10px 0;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 2px solid transparent;
+        }
+        .menu-btn:hover { transform: translateY(-3px); border-color: #1976d2; }
+        .menu-btn span { font-weight: bold; font-size: 1.1rem; color: #333; }
+        .menu-btn p { font-size: 0.85rem; color: #777; margin: 5px 0 0 0; }
+
+        #words-screen { 
+            background: rgba(0,0,0,0.85); 
+            color: white; 
+            z-index: 1100; 
+            padding: 30px; 
+            text-align: center;
+        }
+        .word-card { max-width: 400px; }
+        .word-content { font-size: 1.25rem; line-height: 1.6; margin-bottom: 30px; font-weight: 300; }
+        .word-author { font-size: 0.9rem; color: #1976d2; font-weight: bold; }
+
+        .container { 
+            background: white; 
+            padding: 2rem; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+            width: 90%; 
+            max-width: 450px; 
+            box-sizing: border-box;
+            margin: auto;
+        }
+
+        h1 { font-size: 1.4rem; color: #1a1a1a; text-align: center; margin-bottom: 20px; }
+        .balance-card { background: #1976d2; color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 25px; }
+        .balance-card h2 { margin: 10px 0 0 0; font-size: 1.8rem; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.85rem; color: #666; margin-bottom: 5px; font-weight: bold; }
+        input, select, .action-btn { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        .action-btn { background: #1976d2; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .list-header { margin-top: 30px; border-bottom: 2px solid #eee; padding-bottom: 10px; font-weight: bold; }
+        ul { list-style: none; padding: 0; margin: 0; }
+        li { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f9f9f9; background: #fff; box-sizing: border-box; }
+        .item-info { display: flex; flex-direction: column; }
+        .item-cat { font-size: 0.7rem; color: #1976d2; background: #e3f2fd; padding: 2px 6px; border-radius: 4px; width: fit-content; margin-bottom: 4px; }
+        .delete-btn { background: #ffeded; color: #d32f2f; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; margin-left: 8px; font-size: 0.85rem; }
+        
+        .completed { text-decoration: line-through; opacity: 0.5; }
+        .checkbox { width: 18px; height: 18px; margin-right: 12px; cursor: pointer; }
+        .shopping-item { display: flex; align-items: center; cursor: pointer; flex-grow: 1; }
+        
+        .opportunity-card {
+            background: #fff8e1; border: 1px solid #ffe082; padding: 15px; border-radius: 12px; margin-top: 20px; display: none;
+        }
+        .opp-title { font-weight: bold; color: #b78103; font-size: 0.95rem; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        .opp-text { font-size: 0.85rem; color: #555; line-height: 1.5; margin: 4px 0; }
+
+        .wish-progress-container { background: #f0f2f5; border-radius: 8px; height: 22px; width: 100%; margin: 12px 0; overflow: hidden; position: relative; }
+        .wish-progress-bar { background: #2e7d32; height: 100%; width: 0%; transition: width 0.4s ease; }
+        .wish-progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 0.8rem; font-weight: bold; line-height: 22px; color: #333; }
+        .challenge-box { background: #f1f8e9; border: 1px dashed #8bc34a; padding: 15px; border-radius: 12px; margin-top: 15px; }
+
+        .confetti {
+            position: absolute; width: 8px; height: 8px; background-color: #f00; border-radius: 50%; z-index: 9999; pointer-events: none; animation: bang 1.2s ease-out forwards; opacity: 0;
+        }
+        @keyframes bang {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--x), var(--y)) scale(0.4); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="intro-screen" class="page-section" onclick="showMenu()">
+    <div class="intro-illustration">💰</div>
+    <div style="font-size: 2rem; font-weight: 800;">Smart Budget App</div>
+    <div class="click-prompt">( CLICK TO START )</div>
+</div>
+
+<div id="menu-screen" class="page-section hidden">
+    <div class="menu-container">
+        <h2 style="margin-bottom: 20px; color: #333;">원하시는 기능을 선택하세요 👋</h2>
+        <div class="menu-btn" onclick="showPlanner()">
+            <span>📊 My Budget Plan</span>
+            <p>지출을 기록하고 남은 예산을 확인합니다.</p>
+        </div>
+        <div class="menu-btn" onclick="showShopping()">
+            <span>🛍️ Shopping List</span>
+            <p>장보기 계획과 품목별 기회비용을 확인합니다.</p>
+        </div>
+        <div class="menu-btn" onclick="showWishChallenge()">
+            <span>🎯 Wish & Challenge</span>
+            <p>소비를 포기한 만큼 갖고 싶은 물건의 %를 채웁니다.</p>
+        </div>
+        <div class="menu-btn" onclick="showWords()">
+            <span>💡 Strengthening Words</span>
+            <p>지혜로운 자산 관리를 위한 조언 한마디</p>
+        </div>
+    </div>
+</div>
+
+<div id="words-screen" class="page-section hidden" onclick="showMenu()">
+    <div class="word-card">
+        <div class="word-content" id="random-word">"부자는 내일의 계획을 세우고, 가난한 자는 오늘의 쾌락을 쫓는다."</div>
+        <div class="word-author" id="word-tag">#자제력</div>
+        <div class="click-prompt" style="color: #666; margin-top: 50px;">(화면을 누르면 메뉴로 돌아갑니다)</div>
+    </div>
+</div>
+
+<div id="main-app" class="container hidden">
+    <button onclick="showMenu()" style="background:none; border:none; color:#1976d2; cursor:pointer; padding:0; margin-bottom:10px; font-weight:bold;">← 메뉴로 돌아가기</button>
+    <h1>My Budget Plan</h1>
+    
+    <div id="card-bg" class="balance-card">
+        <p>남은 예산</p>
+        <h2 id="remaining-amount">0원</h2>
+    </div>
+
+    <div class="input-group">
+        <label>이번 달 목표 예산</label>
+        <input type="number" id="total-budget" placeholder="예: 1000000" oninput="saveBudget()">
+    </div>
+
+    <div style="border: 1px dashed #ddd; padding: 15px; border-radius: 12px; background: #fafafa;">
+        <label>지출 기록하기</label>
+        <select id="exp-category">
+            <option value="식비">🍔 식비</option>
+            <option value="교통">🚌 교통</option>
+            <option value="쇼핑">🛍️ 쇼핑</option>
+            <option value="의료">🏥 의료</option>
+            <option value="기타">✨ 기타</option>
+        </select>
+        <input type="text" id="exp-name" placeholder="내용 (예: 스타벅스)">
+        <input type="number" id="exp-amount" placeholder="금액">
+        <button class="action-btn" onclick="addExpense()">추가하기</button>
+    </div>
+
+    <div class="list-header">지출 내역</div>
+    <ul id="expense-list"></ul>
+</div>
+
+<div id="shopping-app" class="container hidden">
+    <button onclick="showMenu()" style="background:none; border:none; color:#1976d2; cursor:pointer; padding:0; margin-bottom:10px; font-weight:bold;">← 메뉴로 돌아가기</button>
+    <h1>Shopping List</h1>
+    <p style="font-size:0.85rem; color:#666; text-align:center; margin-top:-10px; margin-bottom:20px;">항목을 클릭하면 숨겨진 <strong>기회비용</strong>을 보여줍니다.</p>
+
+    <div style="border: 1px dashed #ddd; padding: 15px; border-radius: 12px; background: #fafafa; margin-bottom: 20px;">
+        <label>구매 예정 품목</label>
+        <input type="text" id="shop-name" placeholder="예: 무선 이어폰">
+        <input type="number" id="shop-price" placeholder="예상 금액">
+        <button class="action-btn" style="background: #2e7d32;" onclick="addShoppingItem()">계획 추가하기</button>
+    </div>
+
+    <div class="list-header">구매 계획 목록</div>
+    <ul id="shopping-list"></ul>
+
+    <div id="opportunity-card" class="opportunity-card">
+        <div class="opp-title">⚖️ <span id="opp-item-name">품목</span>의 진짜 기회비용</div>
+        <div class="opp-text" id="opp-food"></div>
+        <div class="opp-text" id="opp-invest"></div>
+    </div>
+</div>
+
+<div id="wish-app" class="container hidden">
+    <button onclick="showMenu()" style="background:none; border:none; color:#1976d2; cursor:pointer; padding:0; margin-bottom:10px; font-weight:bold;">← 메뉴로 돌아가기</button>
+    <h1>Wish & Challenge</h1>
+    <p style="font-size:0.85rem; color:#666; text-align:center; margin-top:-10px; margin-bottom:20px;">꿈의 목표를 설정하고, 유혹을 참아 게이지를 채우세요!</p>
+
+    <div style="border: 1px dashed #ddd; padding: 15px; border-radius: 12px; background: #fafafa; margin-bottom: 15px;">
+        <label style="color: #1976d2;">🎯 갖고 싶은 목표 물건과 가격</label>
+        <input type="text" id="wish-name" placeholder="예: 플레이스테이션 5" oninput="saveWishTarget()">
+        <input type="number" id="wish-price" placeholder="목표 가격 (예: 600000)" oninput="saveWishTarget()">
+    </div>
+
+    <div id="wish-status-card" style="background: #e8f5e9; padding: 15px; border-radius: 12px; display: none; margin-bottom: 15px;">
+        <div style="font-weight: bold; color: #2e7d32; font-size: 0.95rem;">
+            🔥 <span id="current-wish-title">물건</span> 구매 챌린지
+        </div>
+        <div class="wish-progress-container">
+            <div id="wish-bar" class="wish-progress-bar"></div>
+            <div id="wish-percent-text" class="wish-progress-text">0%</div>
+        </div>
+        <div style="font-size: 0.8rem; color: #555; text-align: right; margin-top: 5px;">
+            절약한 금액: <span id="saved-amount-text" style="font-weight:bold; color:#2e7d32;">0원</span> / <span id="target-amount-text">0원</span>
+        </div>
+
+        <div class="challenge-box">
+            <label style="color: #4e342e; font-size: 0.8rem; font-weight: bold;">🛑 지름신을 극복하고 포기한 지출</label>
+            <input type="text" id="giveup-name" placeholder="예: 배달 치킨 야식 참고 패스">
+            <input type="number" id="giveup-price" placeholder="포기한 지출의 금액">
+            <button class="action-btn" style="background: #4e342e; padding: 10px; font-size: 0.95rem; margin-bottom:0;" onclick="addGiveUpItem()">유혹 참기 성공! (+% 누적)</button>
+        </div>
+    </div>
+
+    <div id="giveup-history-section" style="display: none;">
+        <div class="list-header">내가 극복해 낸 유혹 리스트</div>
+        <ul id="giveup-list"></ul>
+    </div>
+</div>
+
+<script>
+    const quotes = [
+        { text: "지출을 줄이는 것이 수입을 늘리는 가장 빠른 길입니다.", tag: "금융" },
+        { text: "부유함은 많은 것을 소유하는 것이 아니라, 욕심이 적은 것이다.", tag: "자제력" },
+        { text: "네 보물 있는 그 곳에는 네 마음도 있느니라. (마태복음 6:21)", tag: "기독교" },
+        { text: "충동 구매 전 10분만 기다리세요. 그 욕구는 곧 사라집니다.", tag: "자제력" }
+    ];
+
+    // LocalStorage를 활용한 데이터 복구 브릿지 생성
+    let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    let shoppingList = JSON.parse(localStorage.getItem('shoppingList')) || [];
+    let wishItem = JSON.parse(localStorage.getItem('wishItem')) || { name: '', price: 0 };
+    let giveUpList = JSON.parse(localStorage.getItem('giveUpList')) || [];
+    let hasCelebrated = false;
+
+    window.onload = function() {
+        if(localStorage.getItem('totalBudget')) {
+            document.getElementById('total-budget').value = localStorage.getItem('totalBudget');
+        }
+        if(wishItem.name) document.getElementById('wish-name').value = wishItem.name;
+        if(wishItem.price) document.getElementById('wish-price').value = wishItem.price;
+    }
+
+    function hideAll() {
+        document.getElementById('intro-screen').classList.add('hidden');
+        document.getElementById('menu-screen').classList.add('hidden');
+        document.getElementById('words-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.add('hidden');
+        document.getElementById('shopping-app').classList.add('hidden');
+        document.getElementById('wish-app').classList.add('hidden');
+    }
+
+    function showMenu() { hideAll(); document.getElementById('menu-screen').classList.remove('hidden'); }
+    function showPlanner() { hideAll(); document.getElementById('main-app').classList.remove('hidden'); render(); }
+    function showShopping() { hideAll(); document.getElementById('shopping-app').classList.remove('hidden'); renderShopping(); }
+    function showWishChallenge() { hideAll(); document.getElementById('wish-app').classList.remove('hidden'); updateWishDisplay(); }
+    
+    function showWords() {
+        hideAll();
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        document.getElementById('random-word').innerText = `"${randomQuote.text}"`;
+        document.getElementById('word-tag').innerText = `#${randomQuote.tag}`;
+        document.getElementById('words-screen').classList.remove('hidden');
+    }
+
+    function saveBudget() {
+        localStorage.setItem('totalBudget', document.getElementById('total-budget').value);
+        render();
+    }
+
+    function addExpense() {
+        const catInput = document.getElementById('exp-category');
+        const nameInput = document.getElementById('exp-name');
+        const amountInput = document.getElementById('exp-amount');
+        if (!nameInput.value || !amountInput.value) return alert("내용과 금액을 입력하세요!");
+        
+        expenses.push({ id: Date.now(), category: catInput.value, name: nameInput.value, amount: Number(amountInput.value) });
+        localStorage.setItem('expenses', JSON.stringify(expenses));
+        nameInput.value = ''; amountInput.value = ''; render();
+    }
+    function deleteExpense(id) { 
+        expenses = expenses.filter(i => i.id !== id); 
+        localStorage.setItem('expenses', JSON.stringify(expenses));
+        render(); 
+    }
+    function render() {
+        const budget = Number(localStorage.getItem('totalBudget')) || 0;
+        const totalSpent = expenses.reduce((s, i) => s + i.amount, 0);
+        const remaining = budget - totalSpent;
+        document.getElementById('remaining-amount').innerText = remaining.toLocaleString() + "원";
+        document.getElementById('card-bg').style.background = remaining < 0 ? "#d32f2f" : "#1976d2";
+        document.getElementById('expense-list').innerHTML = expenses.map(i => `
+            <li>
+                <div class="item-info"><span class="item-cat">${i.category}</span><strong>${i.name}</strong></div>
+                <div><span style="color:#d32f2f">-${i.amount.toLocaleString()}원</span><button class="delete-btn" onclick="deleteExpense(${i.id})">삭제</button></div>
+            </li>
+        `).reverse().join('');
+    }
+
+    function addShoppingItem() {
+        const nameInput = document.getElementById('shop-name');
+        const priceInput = document.getElementById('shop-price');
+        if (!nameInput.value || !priceInput.value) return alert("품목과 예상 금액을 입력하세요!");
+
+        shoppingList.push({ id: Date.now(), name: nameInput.value, price: Number(priceInput.value), completed: false });
+        localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
+        nameInput.value = ''; priceInput.value = ''; renderShopping();
+    }
+    function toggleShoppingItem(id) {
+        shoppingList = shoppingList.map(item => item.id === id ? { ...item, completed: !item.completed } : item);
+        localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
+        renderShopping();
+        document.getElementById('opportunity-card').style.display = 'none';
+    }
+    function deleteShoppingItem(id) {
+        shoppingList = shoppingList.filter(item => item.id !== id);
+        localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
+        renderShopping();
+        document.getElementById('opportunity-card').style.display = 'none';
+    }
+    function calculateOpportunity(name, price) {
+        document.getElementById('opp-item-name').innerText = name;
+        const gukbapCount = (price / 10000).toFixed(1);
+        document.getElementById('opp-food').innerHTML = `• 🍲 <strong>든든한 국밥 약 ${gukbapCount}그릇</strong>을 먹을 수 있는 돈입니다.`;
+        const futureValue = Math.round(price * 2.593);
+        document.getElementById('opp-invest').innerHTML = `• 📈 이 돈을 쓰지 않고 S&P500에 10년간 묻어둔다면 미래에 <strong>${futureValue.toLocaleString()}원</strong>이 되어있을 고귀한 자산입니다.`;
+        document.getElementById('opportunity-card').style.display = 'block';
+    }
+    function renderShopping() {
+        const listContainer = document.getElementById('shopping-list');
+        listContainer.innerHTML = shoppingList.map(item => `
+            <li>
+                <div class="shopping-item ${item.completed ? 'completed' : ''}" onclick="calculateOpportunity('${item.name}', ${item.price})">
+                    <input type="checkbox" class="checkbox" ${item.completed ? 'checked' : ''} onclick="event.stopPropagation(); toggleShoppingItem(${item.id})">
+                    <strong>${item.name}</strong>
+                </div>
+                <div>
+                    <span style="color:#2e7d32; font-weight:bold;">${item.price.toLocaleString()}원</span>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteShoppingItem(${item.id})">삭제</button>
+                </div>
+            </li>
+        `).reverse().join('');
+    }
+
+    function saveWishTarget() {
+        const name = document.getElementById('wish-name').value;
+        const price = Number(document.getElementById('wish-price').value);
+        wishItem = { name: name, price: price };
+        localStorage.setItem('wishItem', JSON.stringify(wishItem));
+        updateWishDisplay();
+    }
+
+    function updateWishDisplay() {
+        if (wishItem.name && wishItem.price > 0) {
+            document.getElementById('current-wish-title').innerText = wishItem.name;
+            document.getElementById('target-amount-text').innerText = wishItem.price.toLocaleString() + "원";
+            document.getElementById('wish-status-card').style.display = 'block';
+            document.getElementById('giveup-history-section').style.display = 'block';
+            calculateProgress();
+        } else {
+            document.getElementById('wish-status-card').style.display = 'none';
+            document.getElementById('giveup-history-section').style.display = 'none';
+        }
+    }
+
+    function addGiveUpItem() {
+        const gNameInput = document.getElementById('giveup-name');
+        const gPriceInput = document.getElementById('giveup-price');
+        if (!gNameInput.value || !gPriceInput.value) return alert("포기한 항목과 금액을 입력하세요!");
+
+        giveUpList.push({ id: Date.now(), name: gNameInput.value, price: Number(gPriceInput.value) });
+        localStorage.setItem('giveUpList', JSON.stringify(giveUpList));
+        gNameInput.value = ''; gPriceInput.value = '';
+        calculateProgress();
+    }
+
+    function deleteGiveUpItem(id) {
+        giveUpList = giveUpList.filter(item => item.id !== id);
+        localStorage.setItem('giveUpList', JSON.stringify(giveUpList));
+        const totalSaved = giveUpList.reduce((sum, item) => sum + item.price, 0);
+        const percent = wishItem.price > 0 ? (totalSaved / wishItem.price) * 100 : 0;
+        if(percent < 100) { hasCelebrated = false; }
+        calculateProgress();
+    }
+
+    function triggerConfetti() {
+        for (let i = 0; i < 50; i++) {
+            const confetti = document.createElement('div');
+            confetti.classList.add('confetti');
+            confetti.style.left = (window.innerWidth / 2) + 'px';
+            confetti.style.top = (window.innerHeight / 2) + 'px';
+            const x = (Math.random() - 0.5) * 400;
+            const y = (Math.random() - 0.5) * 400 - 100;
+            confetti.style.setProperty('--x', `${x}px`);
+            confetti.style.setProperty('--y', `${y}px`);
+            const colors = ['#ff2a74', '#ffea00', '#00e5ff', '#76ff03', '#9c27b0', '#ff9100'];
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            document.body.appendChild(confetti);
+            setTimeout(() => { confetti.remove(); }, 1200);
+        }
+    }
+
+    function calculateProgress() {
+        const totalSaved = giveUpList.reduce((sum, item) => sum + item.price, 0);
+        let percent = 0;
+        if (wishItem.price > 0) percent = (totalSaved / wishItem.price) * 100;
+
+        if (percent >= 100 && !hasCelebrated) {
+            triggerConfetti();
+            hasCelebrated = true;
+            setTimeout(() => { alert(`🎉 대단합니다! [${wishItem.name}] 구매 목표를 100% 달성하셨습니다!`); }, 300);
+        }
+
+        const displayPercent = percent > 100 ? 100 : percent;
+        document.getElementById('wish-bar').style.width = displayPercent + '%';
+        document.getElementById('wish-percent-text').innerText = percent.toFixed(1) + '%';
+        document.getElementById('saved-amount-text').innerText = totalSaved.toLocaleString() + "원";
+
+        const giveupListContainer = document.getElementById('giveup-list');
+        giveupListContainer.innerHTML = giveUpList.map(item => {
+            const contribution = ((item.price / wishItem.price) * 100).toFixed(1);
+            return `
+                <li>
+                    <div class="item-info">
+                        <strong>${item.name}</strong>
+                        <span style="font-size:0.75rem; color:#666;">목표 달성 기여도: +${contribution}%</span>
+                    </div>
+                    <div>
+                        <span style="color:#2e7d32; font-weight:bold;">+${item.price.toLocaleString()}원</span>
+                        <button class="delete-btn" onclick="deleteGiveUpItem(${item.id})">삭제</button>
+                    </div>
+                </li>
+            `;
+        }).reverse().join('');
+    }
+
+    // 서비스 워커 스크립트 브릿지 (PWA 필수)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('서비스 워커 성공'))
+                .catch(err => console.log('서비스 워커 실패'));
+        });
+    }
+</script>
+
+</body>
+</html>
